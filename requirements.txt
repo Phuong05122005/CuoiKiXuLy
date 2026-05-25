@@ -1,0 +1,10 @@
+streamlit
+underthesea
+pandas
+watchdog
+scikit-learn
+wordcloud
+matplotlib
+seaborn
+plotly
+datasets
