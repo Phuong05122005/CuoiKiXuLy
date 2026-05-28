@@ -6,11 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.graph_objects as go
 from wordcloud import WordCloud
-from underthesea import word_tokenize
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
-import os
+from model import load_and_train_model, preprocess_text, get_dataset_stats
 
 # --- 1. SETUP THÔNG SỐ TRANG ---
 st.set_page_config(
@@ -136,65 +132,10 @@ with st.sidebar:
 
 # --- 3. DATASET & PREPROCESSING & MODEL (CACHED) ---
 @st.cache_resource
-def load_and_train_model():
-    train_path = "data_csv/train.csv"
-    test_path = "data_csv/test.csv"
-    
-    if os.path.exists(train_path) and os.path.exists(test_path):
-        df_train = pd.read_csv(train_path)
-        df_test = pd.read_csv(test_path)
-        
-        df_train = df_train.rename(columns={'sentence': 'text'})
-        df_test = df_test.rename(columns={'sentence': 'text'})
-            
-        label_mapping = {0: "Negative", 1: "Neutral", 2: "Positive"}
-        df_train['label'] = df_train['sentiment'].map(label_mapping)
-        df_test['label'] = df_test['sentiment'].map(label_mapping)
-            
-        df_train = df_train.dropna(subset=['text', 'label'])
-        df_test = df_test.dropna(subset=['text', 'label'])
-    else:
-        # Dự phòng Mock Data
-        data = [
-            ("Thầy dạy rất nhiệt tình, giảng bài dễ hiểu.", "Positive"),
-            ("Phòng học quá nóng, điều hòa hỏng.", "Negative"),
-            ("Môn học bình thường, không có gì đặc sắc.", "Neutral")
-        ]
-        df_train = pd.DataFrame(data, columns=["text", "label"])
-        df_test = df_train.copy()
-    
-    def preprocess_text(text):
-        text = text.lower()
-        text = word_tokenize(text, format="text")
-        return text
+def load_and_train_resource():
+    return load_and_train_model()
 
-    df_train["processed_text"] = df_train["text"].apply(preprocess_text)
-    df_test["processed_text"] = df_test["text"].apply(preprocess_text)
-    
-    vectorizer = TfidfVectorizer(ngram_range=(1, 2))
-    X_train = vectorizer.fit_transform(df_train["processed_text"])
-    y_train = df_train["label"]
-    
-    X_test = vectorizer.transform(df_test["processed_text"])
-    y_test = df_test["label"]
-    
-    model = LogisticRegression(random_state=42, C=1.0, max_iter=1000)
-    model.fit(X_train, y_train)
-    
-    y_pred = model.predict(X_test)
-    metrics = {
-        "accuracy": accuracy_score(y_test, y_pred),
-        "precision": precision_score(y_test, y_pred, average='weighted', zero_division=0),
-        "recall": recall_score(y_test, y_pred, average='weighted', zero_division=0),
-        "f1": f1_score(y_test, y_pred, average='weighted', zero_division=0),
-        "report": classification_report(y_test, y_pred, output_dict=True),
-        "cm": confusion_matrix(y_test, y_pred, labels=["Negative", "Neutral", "Positive"]),
-        "labels": ["Negative", "Neutral", "Positive"]
-    }
-    
-    return vectorizer, model, preprocess_text, metrics, df_train
-
-vectorizer, model, preprocess_text, metrics, df_train = load_and_train_model()
+vectorizer, model, metrics, df_train = load_and_train_resource()
 
 # --- 4. TIỆN ÍCH UI ---
 def get_download_link(df, filename="ket_qua_phan_tich.csv", text="Tải xuống Excel/CSV"):
@@ -202,6 +143,31 @@ def get_download_link(df, filename="ket_qua_phan_tich.csv", text="Tải xuống 
     b64 = base64.b64encode(csv.encode()).decode()
     href = f'<a href="data:file/csv;base64,{b64}" download="{filename}" class="btn-download">📥 {text}</a>'
     return href
+
+def create_pdf_report(df):
+    try:
+        from fpdf import FPDF
+    except ImportError:
+        return None
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(0, 10, "Báo cáo Phân tích Cảm xúc Sinh viên", ln=True)
+    pdf.ln(4)
+
+    for _, row in df.tail(15).iterrows():
+        pdf.set_font("Arial", style="B", size=12)
+        pdf.cell(0, 8, f"{row['Thời gian']} | {row['Cảm xúc']} | {row['Độ tin cậy']}", ln=True)
+        pdf.set_font("Arial", size=11)
+        pdf.multi_cell(0, 6, f"Văn bản gốc: {row['Văn bản gốc']}")
+        pdf.multi_cell(0, 6, f"Văn bản tiền xử lý: {row['Văn bản tiền xử lý']}")
+        pdf.ln(2)
+
+    pdf_output = pdf.output(dest='S').encode('latin-1', errors='replace')
+    return pdf_output
+
 
 def plot_confidence_gauge(confidence, label):
     color = "#4CAF50" if label == "Positive" else "#F44336" if label == "Negative" else "#9E9E9E"
@@ -306,7 +272,21 @@ with tab1:
     with st.expander("📂 XEM LỊCH SỬ PHÂN TÍCH & XUẤT BÁO CÁO", expanded=False):
         if not st.session_state.history.empty:
             st.dataframe(st.session_state.history, use_container_width=True)
-            st.markdown(get_download_link(st.session_state.history), unsafe_allow_html=True)
+            c1, c2 = st.columns([1, 1])
+            with c1:
+                st.markdown(get_download_link(st.session_state.history), unsafe_allow_html=True)
+            with c2:
+                pdf_data = create_pdf_report(st.session_state.history)
+                if pdf_data is not None:
+                    st.download_button(
+                        label="📄 Tải xuống báo cáo PDF",
+                        data=pdf_data,
+                        file_name="bao_cao_phan_tich_cam_xuc.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
+                else:
+                    st.info("PDF export chưa khả dụng. Cài thêm thư viện `fpdf` nếu cần.")
         else:
             st.write("Chưa có phiên phân tích nào.")
 
@@ -343,6 +323,23 @@ with tab2:
         st.dataframe(df_report.style.format("{:.3f}").background_gradient(cmap='Blues'), use_container_width=True)
         st.caption("Bảng báo cáo bóc tách chi tiết khả năng nhận diện cho từng nhãn riêng biệt.")
 
+    st.markdown("---")
+    st.markdown("### Kiểm thử mẫu với dữ liệu đầu vào khác nhau")
+    sample_texts = [
+        "Giảng viên rất nhiệt tình, bài giảng dễ hiểu.",
+        "Phòng học nóng và wifi yếu, làm việc khó chịu.",
+        "Môn học bình thường, không có gì nổi bật.",
+        "Tôi cảm thấy hài lòng với cách tổ chức của giảng viên.",
+        "Cơ sở vật chất cũ kỹ, cần được cải thiện nhanh.",
+    ]
+
+    sample_df = pd.DataFrame(sample_texts, columns=["Mẫu phản hồi"])
+    sample_df["Tiền xử lý"] = sample_df["Mẫu phản hồi"].apply(preprocess_text)
+    sample_X = vectorizer.transform(sample_df["Tiền xử lý"])
+    sample_df["Dự đoán"] = model.predict(sample_X)
+    sample_df["Độ tin cậy"] = np.max(model.predict_proba(sample_X), axis=1).round(4)
+    st.dataframe(sample_df, use_container_width=True)
+
 # ================= TAB 3: KIẾN TRÚC =================
 with tab3:
     st.markdown("### Kiến Trúc Hệ Thống & Quá Trình Tiền Xử Lý")
@@ -350,13 +347,20 @@ with tab3:
     c1, c2 = st.columns([1, 1])
     with c1:
         st.info("**1. Thu thập dữ liệu (Dataset):**")
-        st.write("- Sử dụng bộ dữ liệu chuẩn **UIT-VSFC** từ Hugging Face.")
-        st.write("- Quy mô: > 16.000 câu phản hồi của sinh viên thực tế.")
-        st.write("- Được phân loại bởi chuyên gia thành 3 nhãn: Tích cực, Tiêu cực, Trung lập.")
+        st.write("- Sử dụng bộ dữ liệu chuẩn **UIT-VSFC**.")
+        st.write("- Triển khai trên tập `'train.csv'`, `'test.csv'`, `'validation.csv'` trong thư mục `data_csv`.")
+        dataset_stats = get_dataset_stats()
+        if dataset_stats:
+            st.write(f"- Train: {dataset_stats['train']['rows']} mẫu | Test: {dataset_stats['test']['rows']} mẫu | Validation: {dataset_stats['validation']['rows']} mẫu")
+        else:
+            st.write("- Dữ liệu chưa có sẵn, ứng dụng sẽ dùng dữ liệu dự phòng nhỏ để demo.")
+        st.write("- Phân loại 3 nhãn: Tích cực, Tiêu cực, Trung lập.")
         
         st.info("**2. Tiền xử lý ngôn ngữ tự nhiên (NLP):**")
         st.write("- Lowercasing: Chuyển toàn bộ văn bản về chữ thường.")
-        st.write("- Tokenization: Sử dụng thư viện `underthesea` (chuyên biệt cho tiếng Việt) để ghép các âm tiết có nghĩa lại với nhau (VD: *giảng_viên* thay vì *giảng* và *viên*).")
+        st.write("- Chuẩn hóa ký tự, loại bỏ ký tự đặc biệt không cần thiết.")
+        st.write("- Tokenization: Sử dụng thư viện `underthesea` để tách từ tiếng Việt chính xác.")
+        st.write("- Loại bỏ stopwords tiếng Việt chuẩn, giúp giảm nhiễu cho TF-IDF.")
         
     with c2:
         st.info("**3. Trích xuất đặc trưng (Feature Extraction):**")

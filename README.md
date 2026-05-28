@@ -33,8 +33,11 @@ Demo hoạt động trên môi trường local bằng Python và Streamlit.)_
 ## Cấu trúc project
 
 ```
-bai-cuoi-mon-nlp-lachong/
+d:
 ├── app.py              # Ứng dụng Streamlit chính
+├── model.py            # Module tách riêng logic train/eval và tiền xử lý
+├── tests.py            # Kiểm thử tự động mẫu
+├── REPORT.md           # Báo cáo luận văn/môn học súc tích
 ├── requirements.txt    # Danh sách thư viện
 ├── DE-TAI.md           # Chi tiết các đề tài gợi ý
 ├── SETUP.md            # Hướng dẫn cài đặt
@@ -44,9 +47,16 @@ bai-cuoi-mon-nlp-lachong/
 
 ---
 
-## Hướng dẫn cài đặt & chạy
+## Dữ liệu dự án
 
-> Xem chi tiết tại [SETUP.md](SETUP.md)
+- `data_csv/train.csv`: 11.426 mẫu
+- `data_csv/test.csv`: 3.166 mẫu
+- `data_csv/validation.csv`: 1.583 mẫu
+- Dữ liệu hiện có sẵn trong thư mục `data_csv/` và ứng dụng sẽ tải mô hình bằng dữ liệu này khi chạy.
+
+---
+
+## Hướng dẫn cài đặt & chạy
 
 ```bash
 # 1. Tạo môi trường ảo
@@ -54,14 +64,24 @@ python3 -m venv venv
 
 # 2. Kích hoạt môi trường ảo
 source venv/bin/activate        # macOS / Linux
-# venv\Scripts\activate         # Windows
+# venv\Scripts\activate       # Windows
 
 # 3. Cài đặt thư viện
 pip install -r requirements.txt
 
-# 4. Chạy ứng dụng
+# 4. Chạy ứng dụng demo
 streamlit run app.py
+
+# 5. Chạy kiểm thử tự động
+python tests.py
 ```
+
+---
+
+## Báo cáo hoàn chỉnh
+
+- Xem file `REPORT.md` để có phần mô tả mục tiêu, phương pháp, dữ liệu, kết quả thực nghiệm, phân tích và kết luận.
+- `REPORT.md` đã bổ sung nội dung phù hợp yêu cầu luận văn/báo cáo môn học.
 
 ---
 
@@ -84,18 +104,37 @@ _(Sinh viên liệt kê các TODO / nhiệm vụ cụ thể theo đề tài đã
 
 ## Công nghệ sử dụng
 
-- Python
-- Streamlit
-- _(Thêm các thư viện theo đề tài đã chọn)_
+- Python 3.x
+- Streamlit (giao diện web)
+- underthesea (tiền xử lý tiếng Việt)
+- scikit-learn (TF-IDF, Logistic Regression, đánh giá mô hình)
+- pandas (xử lý dữ liệu)
+- numpy (tính toán số học)
+- matplotlib / seaborn / plotly (trực quan hoá)
+- wordcloud (tạo word cloud)
+- fpdf (xuất báo cáo PDF)
 
 ---
 
 ## Demo
 
-_(Thêm screenshot hoặc link Streamlit Cloud sau khi deploy)_
+Ứng dụng chạy local bằng lệnh sau:
+
+```bash
+streamlit run app.py
+```
+
+Mở trình duyệt và truy cập địa chỉ được Streamlit cung cấp để nhập phản hồi sinh viên và xem kết quả phân tích cảm xúc.
+
+> Nếu muốn, bạn có thể deploy lên Streamlit Cloud hoặc Hugging Face Spaces và cập nhật link tại đây sau khi hoàn thành.
 
 ---
 
 ## Tài liệu tham khảo
 
-_(Liệt kê các nguồn tài liệu, dataset, paper đã sử dụng)_
+- Dataset UIT-VSFC (bộ dữ liệu phản hồi sinh viên tiếng Việt)
+- Thư viện `underthesea` cho xử lý tiếng Việt
+- Thư viện `scikit-learn` cho TF-IDF và Logistic Regression
+- Thư viện `Streamlit` cho giao diện demo
+- Tài liệu hướng dẫn `WordCloud`, `matplotlib`, `seaborn`, và `plotly` cho trực quan hoá
+- Các bài viết, blog và tài liệu NLP tiếng Việt liên quan đến phân tích cảm xúc

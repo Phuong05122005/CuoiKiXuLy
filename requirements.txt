@@ -7,4 +7,5 @@ wordcloud
 matplotlib
 seaborn
 plotly
+fpdf
 datasets

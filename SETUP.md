@@ -43,6 +43,13 @@ pip freeze > requirements.txt
 pip install -r requirements.txt
 ```
 
+## Chạy ứng dụng và kiểm thử
+
+```bash
+streamlit run app.py
+python tests.py
+```
+
 ## Cài đặt Xcode Command Line Tools (macOS)
 
 Để `watchdog` hoạt động tốt trên macOS, cần cài Xcode Command Line Tools:
