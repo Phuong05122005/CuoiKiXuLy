@@ -118,15 +118,7 @@ _(Sinh viên liệt kê các TODO / nhiệm vụ cụ thể theo đề tài đã
 
 ## Demo
 
-Ứng dụng chạy local bằng lệnh sau:
 
-```bash
-streamlit run app.py
-```
-
-Mở trình duyệt và truy cập địa chỉ được Streamlit cung cấp để nhập phản hồi sinh viên và xem kết quả phân tích cảm xúc.
-
-> Nếu muốn, bạn có thể deploy lên Streamlit Cloud hoặc Hugging Face Spaces và cập nhật link tại đây sau khi hoàn thành.
 
 ---
 

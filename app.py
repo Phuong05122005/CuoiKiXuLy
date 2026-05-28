@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
 import base64
+import unicodedata
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.graph_objects as go
@@ -153,20 +155,56 @@ def create_pdf_report(df):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(0, 10, "Báo cáo Phân tích Cảm xúc Sinh viên", ln=True)
+
+    font_name = "Arial"
+    font_path = None
+    for path in [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+        "C:\\Windows\\Fonts\\arialuni.ttf",
+        "C:\\Windows\\Fonts\\arial.ttf",
+        "C:\\Windows\\Fonts\\DejaVuSans.ttf",
+    ]:
+        if os.path.exists(path):
+            font_path = path
+            break
+
+    if font_path:
+        try:
+            pdf.add_font("DejaVu", "", font_path, uni=True)
+            font_name = "DejaVu"
+        except Exception:
+            font_name = "Arial"
+
+    use_unicode = font_name != "Arial"
+
+    def normalize_text(text: str) -> str:
+        text = str(text)
+        if use_unicode:
+            return text
+        return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+
+    pdf.set_font(font_name, size=12)
+    pdf.cell(0, 10, normalize_text("Báo cáo Phân tích Cảm xúc Sinh viên"), ln=True)
     pdf.ln(4)
 
     for _, row in df.tail(15).iterrows():
-        pdf.set_font("Arial", style="B", size=12)
-        pdf.cell(0, 8, f"{row['Thời gian']} | {row['Cảm xúc']} | {row['Độ tin cậy']}", ln=True)
-        pdf.set_font("Arial", size=11)
-        pdf.multi_cell(0, 6, f"Văn bản gốc: {row['Văn bản gốc']}")
-        pdf.multi_cell(0, 6, f"Văn bản tiền xử lý: {row['Văn bản tiền xử lý']}")
+        pdf.set_font(font_name, style="B", size=12)
+        pdf.cell(
+            0,
+            8,
+            normalize_text(f"{row['Thời gian']} | {row['Cảm xúc']} | {row['Độ tin cậy']}"),
+            ln=True,
+        )
+        pdf.set_font(font_name, size=11)
+        pdf.multi_cell(0, 6, normalize_text(f"Van ban goc: {row['Văn bản gốc']}" if not use_unicode else f"Văn bản gốc: {row['Văn bản gốc']}"))
+        pdf.multi_cell(0, 6, normalize_text(f"Van ban tien xu ly: {row['Văn bản tiền xử lý']}" if not use_unicode else f"Văn bản tiền xử lý: {row['Văn bản tiền xử lý']}"))
         pdf.ln(2)
 
-    pdf_output = pdf.output(dest='S').encode('latin-1', errors='replace')
-    return pdf_output
+    try:
+        return pdf.output(dest='S').encode('latin-1', errors='replace')
+    except Exception:
+        return None
 
 
 def plot_confidence_gauge(confidence, label):
