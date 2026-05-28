@@ -77,22 +77,6 @@ st.markdown("""
         font-size: 1.1rem;
     }
     
-    /* Sidebar */
-    .sidebar-title {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #1565C0;
-        margin-bottom: 10px;
-        text-align: center;
-    }
-    .sidebar-info {
-        background-color: #F3F6F9;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #1976D2;
-        margin-bottom: 20px;
-    }
-    
     /* Button Tải xuống */
     .btn-download {
         display: inline-block;
@@ -113,24 +97,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. SIDEBAR THÔNG TIN ---
-with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo-Lac-Hong-University.png/320px-Logo-Lac-Hong-University.png", use_container_width=True)
-    st.markdown('<div class="sidebar-title">Đồ Án Cuối Kỳ</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div class="sidebar-info">
-        <b>Đề tài:</b> Xây dựng hệ thống phân tích cảm xúc phản hồi sinh viên<br><br>
-        <b>Trường:</b> Đại Học Lạc Hồng<br>
-        <b>Sinh viên thực hiện:</b>
-        <ul>
-            <li>Nguyễn Thái Phương</li>
-            <li>Phan Gia Huy</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("**🔍 Giới thiệu:**")
-    st.caption("Ứng dụng AI (NLP) để tự động phân loại các phản hồi của sinh viên về chất lượng giảng dạy, cơ sở vật chất thành 3 nhóm: Tích cực, Tiêu cực, Trung lập.")
+st.markdown("---")
+st.markdown("**🔍 Giới thiệu:**")
+st.caption("Ứng dụng AI (NLP) để tự động phân loại các phản hồi của sinh viên về chất lượng giảng dạy, cơ sở vật chất thành 3 nhóm: Tích cực, Tiêu cực, Trung lập.")
 
 # --- 3. DATASET & PREPROCESSING & MODEL (CACHED) ---
 @st.cache_resource
@@ -172,6 +141,7 @@ def create_pdf_report(df):
     if font_path:
         try:
             pdf.add_font("DejaVu", "", font_path, uni=True)
+            pdf.add_font("DejaVu", "B", font_path, uni=True)
             font_name = "DejaVu"
         except Exception:
             font_name = "Arial"
